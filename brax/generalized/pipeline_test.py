@@ -15,36 +15,35 @@
 # pylint:disable=g-multiple-import
 """Tests for generalized pipeline."""
 
-from absl.testing import absltest
-from absl.testing import parameterized
+import jax
+import numpy as np
+from absl.testing import absltest, parameterized
+from jax import numpy as jp
+
 from brax import test_utils
 from brax.generalized import pipeline
-import jax
-from jax import numpy as jp
-import numpy as np
 
 
 class PipelineTest(parameterized.TestCase):
+    @parameterized.parameters(
+        ("ant.xml",),
+        ("triple_pendulum.xml",),
+        ("humanoid.xml",),
+        ("half_cheetah.xml",),
+        ("swimmer.xml",),
+    )
+    def test_forward(self, xml_file):
+        """Test pipeline step."""
+        sys = test_utils.load_fixture(xml_file)
+        # crank up solver iterations just to demonstrate close match to mujoco
+        sys = sys.replace(solver_iterations=500)
+        for mj_prev, mj_next in test_utils.sample_mujoco_states(xml_file):
+            state = jax.jit(pipeline.init)(sys, mj_prev.qpos, mj_prev.qvel)
+            state = jax.jit(pipeline.step)(sys, state, jp.zeros(sys.act_size()))
 
-  @parameterized.parameters(
-      ('ant.xml',),
-      ('triple_pendulum.xml',),
-      ('humanoid.xml',),
-      ('half_cheetah.xml',),
-      ('swimmer.xml',),
-  )
-  def test_forward(self, xml_file):
-    """Test pipeline step."""
-    sys = test_utils.load_fixture(xml_file)
-    # crank up solver iterations just to demonstrate close match to mujoco
-    sys = sys.replace(solver_iterations=500)
-    for mj_prev, mj_next in test_utils.sample_mujoco_states(xml_file):
-      state = jax.jit(pipeline.init)(sys, mj_prev.qpos, mj_prev.qvel)
-      state = jax.jit(pipeline.step)(sys, state, jp.zeros(sys.act_size()))
-
-      np.testing.assert_allclose(state.q, mj_next.qpos, atol=0.002)
-      np.testing.assert_allclose(state.qd, mj_next.qvel, atol=0.5)
+            np.testing.assert_allclose(state.q, mj_next.qpos, atol=0.002)
+            np.testing.assert_allclose(state.qd, mj_next.qvel, atol=0.5)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

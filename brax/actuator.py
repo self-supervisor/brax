@@ -15,42 +15,39 @@
 # pylint:disable=g-multiple-import
 """Functions for applying actuators to a physics pipeline."""
 
-from brax.base import System
 from jax import numpy as jp
 
+from brax.base import System
 
-def to_tau(
-    sys: System, act: jp.ndarray, q: jp.ndarray, qd: jp.ndarray
-) -> jp.ndarray:
-  """Convert actuator to a joint force tau.
 
-  Args:
-    sys: system defining the kinematic tree and other properties
-    act: (act_size,) actuator force input vector
-    q: joint position vector
-    qd: joint velocity vector
+def to_tau(sys: System, act: jp.ndarray, q: jp.ndarray, qd: jp.ndarray) -> jp.ndarray:
+    """Convert actuator to a joint force tau.
 
-  Returns:
-    tau: (qd_size,) vector of joint forces
-  """
-  if sys.act_size() == 0:
-    return jp.zeros(sys.qd_size())
+    Args:
+      sys: system defining the kinematic tree and other properties
+      act: (act_size,) actuator force input vector
+      q: joint position vector
+      qd: joint velocity vector
 
-  ctrl_range = sys.actuator.ctrl_range
-  force_range = sys.actuator.force_range
+    Returns:
+      tau: (qd_size,) vector of joint forces
+    """
+    if sys.act_size() == 0:
+        return jp.zeros(sys.qd_size())
 
-  q, qd = q[sys.actuator.q_id], qd[sys.actuator.qd_id]
-  act = jp.clip(act, ctrl_range[:, 0], ctrl_range[:, 1])
-  # See https://github.com/deepmind/mujoco/discussions/754 for why gear is
-  # used for the bias term.
-  bias = sys.actuator.gear * (
-      q * sys.actuator.bias_q + qd * sys.actuator.bias_qd
-  )
+    ctrl_range = sys.actuator.ctrl_range
+    force_range = sys.actuator.force_range
 
-  force = sys.actuator.gain * act + bias
-  force = jp.clip(force, force_range[:, 0], force_range[:, 1])
+    q, qd = q[sys.actuator.q_id], qd[sys.actuator.qd_id]
+    act = jp.clip(act, ctrl_range[:, 0], ctrl_range[:, 1])
+    # See https://github.com/deepmind/mujoco/discussions/754 for why gear is
+    # used for the bias term.
+    bias = sys.actuator.gear * (q * sys.actuator.bias_q + qd * sys.actuator.bias_qd)
 
-  force *= sys.actuator.gear
-  tau = jp.zeros(sys.qd_size()).at[sys.actuator.qd_id].add(force)
+    force = sys.actuator.gain * act + bias
+    force = jp.clip(force, force_range[:, 0], force_range[:, 1])
 
-  return tau
+    force *= sys.actuator.gear
+    tau = jp.zeros(sys.qd_size()).at[sys.actuator.qd_id].add(force)
+
+    return tau

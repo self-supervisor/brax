@@ -17,20 +17,20 @@
 import os
 from typing import Any
 
-from brax.v1.io.file import File
-from brax.v1.io.file import MakeDirs
 import jax.numpy as jnp
+
+from brax.v1.io.file import File, MakeDirs
 
 
 def save(path: str, obj: Any, make_dir: bool = False):
-  """Saves object in a .npy file."""
-  if make_dir and path:
-    MakeDirs(os.path.dirname(path))
-  with File(path, 'wb') as f_out:
-    jnp.save(f_out, obj)
+    """Saves object in a .npy file."""
+    if make_dir and path:
+        MakeDirs(os.path.dirname(path))
+    with File(path, "wb") as f_out:
+        jnp.save(f_out, obj)
 
 
 def load(path: str) -> Any:
-  """Loads .npy file."""
-  with File(path, 'rb') as f_in:
-    return jnp.load(f_in, allow_pickle=True)
+    """Loads .npy file."""
+    with File(path, "rb") as f_in:
+        return jnp.load(f_in, allow_pickle=True)

@@ -14,15 +14,14 @@
 
 """Import top-level classes and functions here for encapsulation/clarity."""
 
-__version__ = '0.1.2'
+__version__ = "0.1.2"
 
 import warnings
 
-from brax.v1.physics.base import Info
-from brax.v1.physics.base import QP
+from brax.v1.physics.base import QP, Info
 from brax.v1.physics.config_pb2 import Config
 from brax.v1.physics.system import System
 
 warnings.warn(
-    'brax.v1 is deprecated and will be removed in a future release.',
-    DeprecationWarning)
+    "brax.v1 is deprecated and will be removed in a future release.", DeprecationWarning
+)

@@ -16,36 +16,36 @@
 
 import json
 
+import jax
+import jax.numpy as jp
 from absl.testing import absltest
+
 from brax import test_utils
 from brax.generalized import pipeline
 from brax.io import json as bjson
-import jax
-import jax.numpy as jp
 
 
 class JsonTest(absltest.TestCase):
+    def test_dumps(self):
+        sys = test_utils.load_fixture("convex_convex.xml")
+        state = pipeline.init(sys, sys.init_q, jp.zeros(sys.qd_size()))
+        res = bjson.dumps(sys, [state])
+        res = json.loads(res)
 
-  def test_dumps(self):
-    sys = test_utils.load_fixture('convex_convex.xml')
-    state = pipeline.init(sys, sys.init_q, jp.zeros(sys.qd_size()))
-    res = bjson.dumps(sys, [state])
-    res = json.loads(res)
+        self.assertIsInstance(res["geoms"], dict)
+        self.assertSequenceEqual(
+            sorted(res["geoms"].keys()),
+            ["box", "dodecahedron", "pyramid", "tetrahedron", "world"],
+        )
+        self.assertLen(res["geoms"]["world"], 1)
 
-    self.assertIsInstance(res['geoms'], dict)
-    self.assertSequenceEqual(
-        sorted(res['geoms'].keys()),
-        ['box', 'dodecahedron', 'pyramid', 'tetrahedron', 'world'],
-    )
-    self.assertLen(res['geoms']['world'], 1)
-
-  def test_dumps_invalidstate_raises(self):
-    sys = test_utils.load_fixture('convex_convex.xml')
-    state = pipeline.init(sys, sys.init_q, jp.zeros(sys.qd_size()))
-    state = jax.tree_map(lambda x: jp.stack([x, x]), state)
-    with self.assertRaises(RuntimeError):
-      bjson.dumps(sys, [state])
+    def test_dumps_invalidstate_raises(self):
+        sys = test_utils.load_fixture("convex_convex.xml")
+        state = pipeline.init(sys, sys.init_q, jp.zeros(sys.qd_size()))
+        state = jax.tree_map(lambda x: jp.stack([x, x]), state)
+        with self.assertRaises(RuntimeError):
+            bjson.dumps(sys, [state])
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

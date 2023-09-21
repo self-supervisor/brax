@@ -13,7 +13,8 @@
 # limitations under the License.
 
 """Composer."""
-from brax.v1.experimental.composer.component_editor import register_component
-from brax.v1.experimental.composer.component_editor import register_default_components
-from brax.v1.experimental.composer.composer import ComponentEnv
-from brax.v1.experimental.composer.composer import Composer
+from brax.v1.experimental.composer.component_editor import (
+    register_component,
+    register_default_components,
+)
+from brax.v1.experimental.composer.composer import ComponentEnv, Composer

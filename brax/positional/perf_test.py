@@ -15,29 +15,29 @@
 # pylint:disable=g-multiple-import
 """PBD perf tests."""
 
+import jax
 from absl.testing import absltest
+from jax import numpy as jp
+
 from brax import test_utils
 from brax.positional import pipeline
-import jax
-from jax import numpy as jp
 
 
 class PerfTest(absltest.TestCase):
+    def test_pipeline_ant(self):
+        sys = test_utils.load_fixture("ant.xml")
 
-  def test_pipeline_ant(self):
-    sys = test_utils.load_fixture('ant.xml')
+        def init_fn(rng):
+            rng1, rng2 = jax.random.split(rng, 2)
+            q = jax.random.uniform(rng1, (sys.q_size(),), minval=-0.1, maxval=0.1)
+            qd = 0.1 * jax.random.normal(rng2, (sys.qd_size(),))
+            return pipeline.init(sys, q, qd)
 
-    def init_fn(rng):
-      rng1, rng2 = jax.random.split(rng, 2)
-      q = jax.random.uniform(rng1, (sys.q_size(),), minval=-0.1, maxval=0.1)
-      qd = 0.1 * jax.random.normal(rng2, (sys.qd_size(),))
-      return pipeline.init(sys, q, qd)
+        def step_fn(state):
+            return pipeline.step(sys, state, jp.zeros(sys.act_size()))
 
-    def step_fn(state):
-      return pipeline.step(sys, state, jp.zeros(sys.act_size()))
-
-    test_utils.benchmark('pbd pipeline ant', init_fn, step_fn)
+        test_utils.benchmark("pbd pipeline ant", init_fn, step_fn)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

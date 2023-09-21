@@ -14,23 +14,23 @@
 
 """Tests for image."""
 
-from absl.testing import absltest
-from absl.testing import parameterized
+import jax
+import jax.numpy as jp
+from absl.testing import absltest, parameterized
+
 from brax import test_utils
 from brax.io import image
 from brax.spring import pipeline
-import jax
-import jax.numpy as jp
 
 
 class ImageTest(parameterized.TestCase):
+    @parameterized.parameters([("ant.xml",), ("convex_convex.xml",)])
+    def test_render_array(self, xml):
+        sys = test_utils.load_fixture(xml)
+        state = jax.jit(pipeline.init)(sys, sys.init_q, jp.zeros(sys.qd_size()))
+        im = image.render_array(sys, state, 32, 32)
+        self.assertEqual(im.shape, (32, 32, 3))
 
-  @parameterized.parameters([('ant.xml',), ('convex_convex.xml',)])
-  def test_render_array(self, xml):
-    sys = test_utils.load_fixture(xml)
-    state = jax.jit(pipeline.init)(sys, sys.init_q, jp.zeros(sys.qd_size()))
-    im = image.render_array(sys, state, 32, 32)
-    self.assertEqual(im.shape, (32, 32, 3))
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

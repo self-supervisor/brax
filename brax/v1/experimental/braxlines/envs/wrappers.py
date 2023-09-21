@@ -14,13 +14,15 @@
 
 """Environment wrappers."""
 import functools
-from brax.v1.envs import env as brax_env
+
 from jax import numpy as jnp
+
+from brax.v1.envs import env as brax_env
 
 
 class ExtraStepArgsWrapper(brax_env.Wrapper):
-  """Add optional kwargs to step() in Brax env."""
+    """Add optional kwargs to step() in Brax env."""
 
-  def step(self, state: brax_env.State, action: jnp.ndarray, **kwargs):
-    self.unwrapped.step = functools.partial(self.unwrapped.step, **kwargs)
-    return self.env.step(state, action)
+    def step(self, state: brax_env.State, action: jnp.ndarray, **kwargs):
+        self.unwrapped.step = functools.partial(self.unwrapped.step, **kwargs)
+        return self.env.step(state, action)

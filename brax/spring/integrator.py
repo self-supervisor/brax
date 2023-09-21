@@ -16,10 +16,11 @@
 # pylint:disable=g-multiple-import
 from typing import Tuple
 
-from brax import math
-from brax.base import Motion, System, Transform
 import jax
 from jax import numpy as jp
+
+from brax import math
+from brax.base import Motion, System, Transform
 
 
 def integrate(
@@ -28,32 +29,32 @@ def integrate(
     xd_i: Motion,
     xdv_i: Motion,
 ) -> Tuple[Transform, Motion]:
-  """Updates state with velocity update in the center of mass frame.
+    """Updates state with velocity update in the center of mass frame.
 
-  Args:
-    sys: System to forward propagate
-    x_i: link center of mass transform in world frame
-    xd_i: link center of mass motion in world frame
-    xdv_i: link center of mass delta-velocity in world frame
+    Args:
+      sys: System to forward propagate
+      x_i: link center of mass transform in world frame
+      xd_i: link center of mass motion in world frame
+      xdv_i: link center of mass delta-velocity in world frame
 
-  Returns:
-    x_i: updated link center of mass transform in world frame
-    xd_i: updated link center of mass motion in world frame
-  """
+    Returns:
+      x_i: updated link center of mass transform in world frame
+      xd_i: updated link center of mass motion in world frame
+    """
 
-  @jax.vmap
-  def op(x_i, xd_i, xdv_i):
-    # damp velocity and add acceleration
-    xd_i = Motion(
-        vel=jp.exp(sys.vel_damping * sys.dt) * xd_i.vel,
-        ang=jp.exp(sys.ang_damping * sys.dt) * xd_i.ang)
-    xd_i += xdv_i
+    @jax.vmap
+    def op(x_i, xd_i, xdv_i):
+        # damp velocity and add acceleration
+        xd_i = Motion(
+            vel=jp.exp(sys.vel_damping * sys.dt) * xd_i.vel,
+            ang=jp.exp(sys.ang_damping * sys.dt) * xd_i.ang,
+        )
+        xd_i += xdv_i
 
-    rot_at_ang_quat = math.ang_to_quat(xd_i.ang) * 0.5 * sys.dt
-    rot = x_i.rot + math.quat_mul(rot_at_ang_quat, x_i.rot)
-    x_i = Transform(pos=x_i.pos + xd_i.vel * sys.dt,
-                    rot=rot / jp.linalg.norm(rot))
+        rot_at_ang_quat = math.ang_to_quat(xd_i.ang) * 0.5 * sys.dt
+        rot = x_i.rot + math.quat_mul(rot_at_ang_quat, x_i.rot)
+        x_i = Transform(pos=x_i.pos + xd_i.vel * sys.dt, rot=rot / jp.linalg.norm(rot))
 
-    return x_i, xd_i
+        return x_i, xd_i
 
-  return op(x_i, xd_i, xdv_i)
+    return op(x_i, xd_i, xdv_i)

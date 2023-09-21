@@ -20,8 +20,9 @@ https://github.com/deepmind/acme/blob/master/acme/types.py
 """
 from typing import Any, Iterable, Mapping, Union
 
-from brax.training.acme import specs
 import jax.numpy as jnp
+
+from brax.training.acme import specs
 
 # Define types for nested arrays and tensors.
 NestedArray = jnp.ndarray
@@ -30,8 +31,8 @@ NestedTensor = Any
 # pytype: disable=not-supported-yet
 NestedSpec = Union[
     specs.Array,
-    Iterable['NestedSpec'],
-    Mapping[Any, 'NestedSpec'],
+    Iterable["NestedSpec"],
+    Mapping[Any, "NestedSpec"],
 ]
 # pytype: enable=not-supported-yet
 

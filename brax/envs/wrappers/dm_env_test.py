@@ -14,29 +14,31 @@
 
 """Tests the dm env wrapper."""
 
+import numpy as np
 from absl.testing import absltest
+
 from brax import envs
 from brax.envs.wrappers import dm_env
-import numpy as np
 
 
 class DmEnvTest(absltest.TestCase):
+    def test_action_space(self):
+        """Tests the action space of the DmEnvWrapper."""
+        base_env = envs.create("pusher")
+        env = dm_env.DmEnvWrapper(base_env)
+        np.testing.assert_array_equal(
+            env.action_spec().minimum, base_env.sys.actuator.ctrl_range[:, 0]
+        )
+        np.testing.assert_array_equal(
+            env.action_spec().maximum, base_env.sys.actuator.ctrl_range[:, 1]
+        )
 
-  def test_action_space(self):
-    """Tests the action space of the DmEnvWrapper."""
-    base_env = envs.create('pusher')
-    env = dm_env.DmEnvWrapper(base_env)
-    np.testing.assert_array_equal(
-        env.action_spec().minimum, base_env.sys.actuator.ctrl_range[:, 0])
-    np.testing.assert_array_equal(
-        env.action_spec().maximum, base_env.sys.actuator.ctrl_range[:, 1])
-
-  def test_render(self):
-    base_env = envs.create('pusher')
-    env = dm_env.DmEnvWrapper(base_env)
-    env.reset()
-    env.render()
+    def test_render(self):
+        base_env = envs.create("pusher")
+        env = dm_env.DmEnvWrapper(base_env)
+        env.reset()
+        env.render()
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

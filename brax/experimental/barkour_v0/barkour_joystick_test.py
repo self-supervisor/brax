@@ -14,19 +14,19 @@
 
 """Tests that the barkour joystick env runs."""
 
-from absl.testing import absltest
-from brax.experimental.barkour_v0 import barkour_joystick
 import jax
 import jax.numpy as jp
+from absl.testing import absltest
+
+from brax.experimental.barkour_v0 import barkour_joystick
 
 
 class BarkourJoystickTest(absltest.TestCase):
-
-  def test_env_runs(self):
-    env = barkour_joystick.Barkourv0()
-    state = jax.jit(env.reset)(jax.random.PRNGKey(42))
-    _ = jax.jit(env.step)(state, jp.zeros(env.sys.act_size()))
+    def test_env_runs(self):
+        env = barkour_joystick.Barkourv0()
+        state = jax.jit(env.reset)(jax.random.PRNGKey(42))
+        _ = jax.jit(env.step)(state, jp.zeros(env.sys.act_size()))
 
 
 if __name__ == "__main__":
-  absltest.main()
+    absltest.main()

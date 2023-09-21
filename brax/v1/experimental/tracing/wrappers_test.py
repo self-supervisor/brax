@@ -14,41 +14,42 @@
 
 """Tests for domain randomization."""
 
-from absl.testing import absltest
-from brax.v1.envs import ant
-from brax.v1.experimental.tracing import randomizers
-from brax.v1.experimental.tracing import wrappers
-import brax.v1.jumpy as jp
 import jax
+from absl.testing import absltest
+
+import brax.v1.jumpy as jp
+from brax.v1.envs import ant
+from brax.v1.experimental.tracing import randomizers, wrappers
 
 
 class WrappersTest(absltest.TestCase):
+    def test_randomize_ant_friction(self):
+        test_ant_fn = ant.Ant
 
-  def test_randomize_ant_friction(self):
+        # generate random friction values
+        random_friction = jp.array(jax.random.uniform(jax.random.PRNGKey(42), (128,)))
 
-    test_ant_fn = ant.Ant
+        # build traceable config trees
+        friction_tree, friction_axes = randomizers.friction_randomizer(
+            test_ant_fn(), random_friction
+        )
 
-    # generate random friction values
-    random_friction = jp.array(
-        jax.random.uniform(jax.random.PRNGKey(42), (128,)))
+        random_friction_test_ant = wrappers.DomainRandomizationWrapper(
+            test_ant_fn, friction_tree, friction_axes
+        )
 
-    # build traceable config trees
-    friction_tree, friction_axes = randomizers.friction_randomizer(
-        test_ant_fn(), random_friction)
+        # test reset
+        out_state = jax.jit(random_friction_test_ant.reset)(
+            jax.random.split(jax.random.PRNGKey(42), 128)
+        )
+        self.assertEqual(out_state.qp.pos.shape[0], 128)
 
-    random_friction_test_ant = wrappers.DomainRandomizationWrapper(
-        test_ant_fn, friction_tree, friction_axes)
-
-    # test reset
-    out_state = jax.jit(random_friction_test_ant.reset)(
-        jax.random.split(jax.random.PRNGKey(42), 128))
-    self.assertEqual(out_state.qp.pos.shape[0], 128)
-
-    # test step
-    next_state = jax.jit(random_friction_test_ant.step)(out_state,
-                                                        jp.zeros((128, 10)))
-    self.assertEqual(next_state.qp.pos.shape[0], 128)
+        # test step
+        next_state = jax.jit(random_friction_test_ant.step)(
+            out_state, jp.zeros((128, 10))
+        )
+        self.assertEqual(next_state.qp.pos.shape[0], 128)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

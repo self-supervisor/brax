@@ -18,29 +18,30 @@ This conversion happens directly on-device, without moving values to the CPU.
 """
 from typing import Optional
 
+import gym
+
 # NOTE: The following line will emit a warning and raise ImportError if `torch`
 # isn't available.
 from brax.io import torch
-import gym
 
 
 class TorchWrapper(gym.Wrapper):
-  """Wrapper that converts Jax tensors to PyTorch tensors."""
+    """Wrapper that converts Jax tensors to PyTorch tensors."""
 
-  def __init__(self, env: gym.Env, device: Optional[torch.Device] = None):
-    """Creates a gym Env to one that outputs PyTorch tensors."""
-    super().__init__(env)
-    self.device = device
+    def __init__(self, env: gym.Env, device: Optional[torch.Device] = None):
+        """Creates a gym Env to one that outputs PyTorch tensors."""
+        super().__init__(env)
+        self.device = device
 
-  def reset(self):
-    obs = super().reset()
-    return torch.jax_to_torch(obs, device=self.device)
+    def reset(self):
+        obs = super().reset()
+        return torch.jax_to_torch(obs, device=self.device)
 
-  def step(self, action):
-    action = torch.torch_to_jax(action)
-    obs, reward, done, info = super().step(action)
-    obs = torch.jax_to_torch(obs, device=self.device)
-    reward = torch.jax_to_torch(reward, device=self.device)
-    done = torch.jax_to_torch(done, device=self.device)
-    info = torch.jax_to_torch(info, device=self.device)
-    return obs, reward, done, info
+    def step(self, action):
+        action = torch.torch_to_jax(action)
+        obs, reward, done, info = super().step(action)
+        obs = torch.jax_to_torch(obs, device=self.device)
+        reward = torch.jax_to_torch(reward, device=self.device)
+        done = torch.jax_to_torch(done, device=self.device)
+        info = torch.jax_to_torch(info, device=self.device)
+        return obs, reward, done, info

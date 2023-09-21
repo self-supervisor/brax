@@ -15,132 +15,127 @@
 # pylint:disable=g-multiple-import
 """An inverted pendulum environment."""
 
+import jax
+from etils import epath
+from jax import numpy as jp
+
 from brax import base
 from brax.envs.base import PipelineEnv, State
 from brax.io import mjcf
-from etils import epath
-import jax
-from jax import numpy as jp
 
 
 class InvertedPendulum(PipelineEnv):
+    # pyformat: disable
+    """### Description
+
+    This environment is the cartpole environment based on the work done by Barto,
+    Sutton, and Anderson in
+    ["Neuronlike adaptive elements that can solve difficult learning control
+    problems"](https://ieeexplore.ieee.org/document/6313077).
+
+    This environment involves a cart that can moved linearly, with a pole fixed on
+    it at one end and having another end free. The cart can be pushed left or
+    right, and the goal is to balance the pole on the top of the cart by applying
+    forces on the cart.
+
+    ### Action Space
+
+    The agent take a 1-element vector for actions. The action space is a
+    continuous `(action)` in `[-3, 3]`, where `action` represents the numerical
+    force applied to the cart (with magnitude representing the amount of force and
+    sign representing the direction)
+
+    | Num | Action                    | Control Min | Control Max | Name (in
+    corresponding config) | Joint | Unit      |
+    |-----|---------------------------|-------------|-------------|--------------------------------|-------|-----------|
+    | 0   | Force applied on the cart | -1          | 1           | thruster
+    | slide | Force (N) |
+
+    ### Observation Space
+
+    The state space consists of positional values of different body parts of the
+    pendulum system, followed by the velocities of those individual parts (their
+    derivatives) with all the positions ordered before all the velocities.
+
+    The observation is a `ndarray` with shape `(4,)` where the elements correspond
+    to the following:
+
+    | Num | Observation                                   | Min  | Max | Name (in
+    corresponding config) | Joint | Unit                     |
+    |-----|-----------------------------------------------|------|-----|--------------------------------|-------|--------------------------|
+    | 0   | position of the cart along the linear surface | -Inf | Inf | thruster
+    | slide | position (m)             |
+    | 1   | vertical angle of the pole on the cart        | -Inf | Inf | hinge
+    | hinge | angle (rad)              |
+    | 2   | linear velocity of the cart                   | -Inf | Inf | thruster
+    | slide | velocity (m/s)           |
+    | 3   | angular velocity of the pole on the cart      | -Inf | Inf | hinge
+    | hinge | angular velocity (rad/s) |
 
 
+    ### Rewards
 
-  # pyformat: disable
-  """### Description
+    The goal is to make the inverted pendulum stand upright (within a certain
+    angle limit) as long as possible - as such a reward of +1 is awarded for each
+    timestep that the pole is upright.
 
-  This environment is the cartpole environment based on the work done by Barto,
-  Sutton, and Anderson in
-  ["Neuronlike adaptive elements that can solve difficult learning control
-  problems"](https://ieeexplore.ieee.org/document/6313077).
+    ### Starting State
+    All observations start in state (0.0, 0.0, 0.0, 0.0) with a uniform noise in
+    the range of [-0.01, 0.01] added to the values for stochasticity.
 
-  This environment involves a cart that can moved linearly, with a pole fixed on
-  it at one end and having another end free. The cart can be pushed left or
-  right, and the goal is to balance the pole on the top of the cart by applying
-  forces on the cart.
+    ### Episode Termination
 
-  ### Action Space
+    The episode terminates when any of the following happens:
 
-  The agent take a 1-element vector for actions. The action space is a
-  continuous `(action)` in `[-3, 3]`, where `action` represents the numerical
-  force applied to the cart (with magnitude representing the amount of force and
-  sign representing the direction)
+    1. The episode duration reaches 1000 timesteps.
+    2. The absolute value of the vertical angle between the pole and the cart is
+    greater than 0.2 radians.
+    """
+    # pyformat: enable
 
-  | Num | Action                    | Control Min | Control Max | Name (in
-  corresponding config) | Joint | Unit      |
-  |-----|---------------------------|-------------|-------------|--------------------------------|-------|-----------|
-  | 0   | Force applied on the cart | -1          | 1           | thruster
-  | slide | Force (N) |
+    def __init__(self, backend="generalized", **kwargs):
+        path = epath.resource_path("brax") / "envs/assets/inverted_pendulum.xml"
+        sys = mjcf.load(path)
 
-  ### Observation Space
+        n_frames = 2
 
-  The state space consists of positional values of different body parts of the
-  pendulum system, followed by the velocities of those individual parts (their
-  derivatives) with all the positions ordered before all the velocities.
+        if backend in ["spring", "positional"]:
+            sys = sys.replace(dt=0.005)
+            n_frames = 4
 
-  The observation is a `ndarray` with shape `(4,)` where the elements correspond
-  to the following:
+        kwargs["n_frames"] = kwargs.get("n_frames", n_frames)
 
-  | Num | Observation                                   | Min  | Max | Name (in
-  corresponding config) | Joint | Unit                     |
-  |-----|-----------------------------------------------|------|-----|--------------------------------|-------|--------------------------|
-  | 0   | position of the cart along the linear surface | -Inf | Inf | thruster
-  | slide | position (m)             |
-  | 1   | vertical angle of the pole on the cart        | -Inf | Inf | hinge
-  | hinge | angle (rad)              |
-  | 2   | linear velocity of the cart                   | -Inf | Inf | thruster
-  | slide | velocity (m/s)           |
-  | 3   | angular velocity of the pole on the cart      | -Inf | Inf | hinge
-  | hinge | angular velocity (rad/s) |
+        super().__init__(sys=sys, backend=backend, **kwargs)
 
+    def reset(self, rng: jp.ndarray) -> State:
+        """Resets the environment to an initial state."""
+        rng, rng1, rng2 = jax.random.split(rng, 3)
 
-  ### Rewards
+        q = self.sys.init_q + jax.random.uniform(
+            rng1, (self.sys.q_size(),), minval=-0.01, maxval=0.01
+        )
+        qd = jax.random.uniform(rng2, (self.sys.qd_size(),), minval=-0.01, maxval=0.01)
+        pipeline_state = self.pipeline_init(q, qd)
+        obs = self._get_obs(pipeline_state)
+        reward, done = jp.zeros(2)
+        metrics = {}
 
-  The goal is to make the inverted pendulum stand upright (within a certain
-  angle limit) as long as possible - as such a reward of +1 is awarded for each
-  timestep that the pole is upright.
+        return State(pipeline_state, obs, reward, done, metrics)
 
-  ### Starting State
-  All observations start in state (0.0, 0.0, 0.0, 0.0) with a uniform noise in
-  the range of [-0.01, 0.01] added to the values for stochasticity.
+    def step(self, state: State, action: jp.ndarray) -> State:
+        """Run one timestep of the environment's dynamics."""
+        pipeline_state = self.pipeline_step(state.pipeline_state, action)
+        obs = self._get_obs(pipeline_state)
+        reward = 1.0
+        done = jp.where(jp.abs(obs[1]) > 0.2, 1.0, 0.0)
+        return state.replace(
+            pipeline_state=pipeline_state, obs=obs, reward=reward, done=done
+        )
 
-  ### Episode Termination
+    @property
+    def action_size(self):
+        return 1
 
-  The episode terminates when any of the following happens:
-
-  1. The episode duration reaches 1000 timesteps.
-  2. The absolute value of the vertical angle between the pole and the cart is
-  greater than 0.2 radians.
-  """
-  # pyformat: enable
-
-
-  def __init__(self, backend='generalized', **kwargs):
-    path = epath.resource_path('brax') / 'envs/assets/inverted_pendulum.xml'
-    sys = mjcf.load(path)
-
-    n_frames = 2
-
-    if backend in ['spring', 'positional']:
-      sys = sys.replace(dt=0.005)
-      n_frames = 4
-
-    kwargs['n_frames'] = kwargs.get('n_frames', n_frames)
-
-    super().__init__(sys=sys, backend=backend, **kwargs)
-
-  def reset(self, rng: jp.ndarray) -> State:
-    """Resets the environment to an initial state."""
-    rng, rng1, rng2 = jax.random.split(rng, 3)
-
-    q = self.sys.init_q + jax.random.uniform(
-        rng1, (self.sys.q_size(),), minval=-0.01, maxval=0.01
-    )
-    qd = jax.random.uniform(
-        rng2, (self.sys.qd_size(),), minval=-0.01, maxval=0.01
-    )
-    pipeline_state = self.pipeline_init(q, qd)
-    obs = self._get_obs(pipeline_state)
-    reward, done = jp.zeros(2)
-    metrics = {}
-
-    return State(pipeline_state, obs, reward, done, metrics)
-
-  def step(self, state: State, action: jp.ndarray) -> State:
-    """Run one timestep of the environment's dynamics."""
-    pipeline_state = self.pipeline_step(state.pipeline_state, action)
-    obs = self._get_obs(pipeline_state)
-    reward = 1.0
-    done = jp.where(jp.abs(obs[1]) > 0.2, 1.0, 0.0)
-    return state.replace(
-        pipeline_state=pipeline_state, obs=obs, reward=reward, done=done
-    )
-
-  @property
-  def action_size(self):
-    return 1
-
-  def _get_obs(self, pipeline_state: base.State) -> jp.ndarray:
-    """Observe cartpole body position and velocities."""
-    return jp.concatenate([pipeline_state.q, pipeline_state.qd])
+    def _get_obs(self, pipeline_state: base.State) -> jp.ndarray:
+        """Observe cartpole body position and velocities."""
+        return jp.concatenate([pipeline_state.q, pipeline_state.qd])
