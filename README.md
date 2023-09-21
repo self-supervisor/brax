@@ -1,5 +1,7 @@
 <img src="https://github.com/google/brax/raw/main/docs/img/brax_logo.gif" width="336" height="80" alt="BRAX"/>
 
+Fork with sin activations.
+
 Brax is a fast and fully differentiable physics engine used for research and
 development of robotics, human perception, materials science, reinforcement
 learning, and other simulation-heavy applications.
