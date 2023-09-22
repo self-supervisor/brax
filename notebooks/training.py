@@ -1,25 +1,25 @@
 import functools
-import jax
 import os
+
+import jax
 
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from datetime import datetime
-from jax import numpy as jp
-import matplotlib.pyplot as plt
-import brax
 
 import flax
-from brax import envs
-from brax.io import model
-from brax.io import json
-from brax.io import html
-from brax.training.agents.ppo import train as ppo
-from brax.training.agents.sac import train as sac
 import hydra
+import matplotlib.pyplot as plt
+from jax import numpy as jp
 
 # import wandb
 from omegaconf import DictConfig
+
+import brax
+from brax import envs
+from brax.io import html, json, model
+from brax.training.agents.ppo import train as ppo
+from brax.training.agents.sac import train as sac
 
 
 @hydra.main(config_path="conf")
