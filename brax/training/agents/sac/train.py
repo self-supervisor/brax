@@ -239,14 +239,20 @@ def train(
         discounting=discounting,
         action_size=action_size,
     )
-    alpha_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-        alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+    alpha_update = (
+        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+            alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+        )
     )
-    critic_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-        critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+    critic_update = (
+        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+            critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+        )
     )
-    actor_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-        actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+    actor_update = (
+        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+            actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
+        )
     )
 
     def sgd_step(

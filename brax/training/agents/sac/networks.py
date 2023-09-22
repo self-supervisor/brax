@@ -14,7 +14,7 @@
 
 """SAC networks."""
 
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import flax
 from flax import linen
