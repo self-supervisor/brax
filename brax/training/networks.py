@@ -16,7 +16,7 @@
 
 import dataclasses
 import warnings
-from typing import Any, Callable, Sequence, Tuple
+from typing import Any, Callable, Sequence, Tuple, Optional
 
 import jax
 import jax.numpy as jnp
@@ -83,19 +83,73 @@ class SNMLP(linen.Module):
         return hidden
 
 
+def default_mlp_init():
+    return linen.initializers.uniform(scale=0.05)
+
+
+def lff_weight_init(scale: float, num_inputs: int):
+    return linen.initializers.normal(stddev=scale / num_inputs)
+
+
+def lff_bias_init():
+    return linen.initializers.uniform(scale=2)
+
+
+class LFF(linen.Module):
+    num_output_features: int
+    num_input_features: int
+    scale: float
+
+    def setup(self):
+        self.dense = linen.Dense(
+            features=self.num_output_features,
+            kernel_init=lff_weight_init(
+                scale=self.scale, num_inputs=self.num_input_features
+            ),
+            bias_init=lff_bias_init(),
+        )
+
+    def __call__(self, x):
+        return jnp.pi * jnp.sin(self.dense(x) - 1)
+
+
+class LFFMLP(linen.Module):
+    layer_sizes: Sequence[int]
+    scale: float
+
+    @linen.compact
+    def __call__(self, data: jnp.ndarray):
+        hidden = data
+        for i, hidden_size in enumerate(self.layer_sizes[:-1]):
+            hidden = LFF(
+                num_input_features=self.layer_sizes[i],
+                num_output_features=self.layer_sizes[i + 1],
+                scale=self.scale,
+                name=f"LFF_{i}",
+            )(hidden)
+        return hidden
+
+
 def make_policy_network(
     param_size: int,
     obs_size: int,
     preprocess_observations_fn: types.PreprocessObservationFn = types.identity_observation_preprocessor,
     hidden_layer_sizes: Sequence[int] = (256, 256),
     activation: ActivationFn = linen.relu,
+    use_lff: Optional[bool] = None,
+    lff_scale: Optional[float] = None,
 ) -> FeedForwardNetwork:
     """Creates a policy network."""
-    policy_module = MLP(
-        layer_sizes=list(hidden_layer_sizes) + [param_size],
-        activation=activation,
-        kernel_init=jax.nn.initializers.lecun_uniform(),
-    )
+    if use_lff:
+        policy_module = LFFMLP(
+            layer_sizes=hidden_layer_sizes + [param_size], scale=lff_scale
+        )
+    else:
+        policy_module = MLP(
+            layer_sizes=list(hidden_layer_sizes) + [param_size],
+            activation=activation,
+            kernel_init=jax.nn.initializers.lecun_uniform(),
+        )
 
     def apply(processor_params, policy_params, obs):
         obs = preprocess_observations_fn(obs, processor_params)
@@ -112,13 +166,20 @@ def make_value_network(
     preprocess_observations_fn: types.PreprocessObservationFn = types.identity_observation_preprocessor,
     hidden_layer_sizes: Sequence[int] = (256, 256),
     activation: ActivationFn = linen.relu,
+    use_lff: Optional[bool] = None,
+    lff_scale: Optional[float] = None,
 ) -> FeedForwardNetwork:
     """Creates a policy network."""
-    value_module = MLP(
-        layer_sizes=list(hidden_layer_sizes) + [1],
-        activation=activation,
-        kernel_init=jax.nn.initializers.lecun_uniform(),
-    )
+    if use_lff:
+        value_module = LFFMLP(
+            layer_sizes=list(hidden_layer_sizes) + [1], scale=lff_scale
+        )
+    else:
+        value_module = MLP(
+            layer_sizes=list(hidden_layer_sizes) + [1],
+            activation=activation,
+            kernel_init=jax.nn.initializers.lecun_uniform(),
+        )
 
     def apply(processor_params, policy_params, obs):
         obs = preprocess_observations_fn(obs, processor_params)
