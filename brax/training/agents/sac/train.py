@@ -134,6 +134,8 @@ def train(
     randomization_fn: Optional[
         Callable[[base.System, jnp.ndarray], Tuple[base.System, base.System]]
     ] = None,
+    use_lff: bool = None,
+    lff_scale: Optional[float] = None,
 ):
     """SAC training."""
     process_id = jax.process_index()
@@ -205,6 +207,8 @@ def train(
         observation_size=obs_size,
         action_size=action_size,
         preprocess_observations_fn=normalize_fn,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
     )
     make_policy = sac_networks.make_inference_fn(sac_network)
 
@@ -235,20 +239,14 @@ def train(
         discounting=discounting,
         action_size=action_size,
     )
-    alpha_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    alpha_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    critic_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    critic_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    actor_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    actor_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
 
     def sgd_step(

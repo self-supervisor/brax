@@ -14,7 +14,7 @@
 
 """SAC networks."""
 
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 
 import flax
 from flax import linen
@@ -58,6 +58,8 @@ def make_sac_networks(
     preprocess_observations_fn: types.PreprocessObservationFn = types.identity_observation_preprocessor,
     hidden_layer_sizes: Sequence[int] = (256, 256),
     activation: networks.ActivationFn = linen.relu,
+    use_lff: bool = False,
+    lff_scale: Optional[float] = None,
 ) -> SACNetworks:
     """Make SAC networks."""
     parametric_action_distribution = distribution.NormalTanhDistribution(
@@ -69,6 +71,8 @@ def make_sac_networks(
         preprocess_observations_fn=preprocess_observations_fn,
         hidden_layer_sizes=hidden_layer_sizes,
         activation=activation,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
     )
     q_network = networks.make_q_network(
         observation_size,
@@ -76,6 +80,8 @@ def make_sac_networks(
         preprocess_observations_fn=preprocess_observations_fn,
         hidden_layer_sizes=hidden_layer_sizes,
         activation=activation,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
     )
     return SACNetworks(
         policy_network=policy_network,

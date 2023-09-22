@@ -1,4 +1,6 @@
 backend: positional
+use_lff: false
+lff_scale: 1.0
 training_algo: sac
 env_name: hopper
 num_timesteps: 6553600

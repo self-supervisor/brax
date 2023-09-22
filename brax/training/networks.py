@@ -142,7 +142,7 @@ def make_policy_network(
     """Creates a policy network."""
     if use_lff:
         policy_module = LFFMLP(
-            layer_sizes=hidden_layer_sizes + [param_size], scale=lff_scale
+            layer_sizes=list(hidden_layer_sizes) + [param_size], scale=lff_scale
         )
     else:
         policy_module = MLP(
@@ -198,6 +198,8 @@ def make_q_network(
     hidden_layer_sizes: Sequence[int] = (256, 256),
     activation: ActivationFn = linen.relu,
     n_critics: int = 2,
+    use_lff: bool = False,
+    lff_scale: Optional[float] = None,
 ) -> FeedForwardNetwork:
     """Creates a value network."""
 
@@ -211,11 +213,16 @@ def make_q_network(
             hidden = jnp.concatenate([obs, actions], axis=-1)
             res = []
             for _ in range(self.n_critics):
-                q = MLP(
-                    layer_sizes=list(hidden_layer_sizes) + [1],
-                    activation=activation,
-                    kernel_init=jax.nn.initializers.lecun_uniform(),
-                )(hidden)
+                if use_lff:
+                    q = LFFMLP(
+                        layer_sizes=list(hidden_layer_sizes) + [1], scale=lff_scale
+                    )(hidden)
+                else:
+                    q = MLP(
+                        layer_sizes=list(hidden_layer_sizes) + [1],
+                        activation=activation,
+                        kernel_init=jax.nn.initializers.lecun_uniform(),
+                    )(hidden)
                 res.append(q)
             return jnp.concatenate(res, axis=-1)
 
