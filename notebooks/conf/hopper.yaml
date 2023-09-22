@@ -1,3 +1,5 @@
+backend: positional
+training_algo: sac
 env_name: hopper
 num_timesteps: 6553600
 num_evals: 20
