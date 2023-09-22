@@ -1,17 +1,15 @@
 import functools
 import os
-
-import jax
-
 from datetime import datetime
+from typing import Dict
 
 import flax
 import hydra
+import jax
 import matplotlib.pyplot as plt
-from jax import numpy as jp
 import numpy as onp
-
 import wandb
+from jax import numpy as jp
 from omegaconf import DictConfig
 
 import brax
@@ -19,7 +17,6 @@ from brax import envs
 from brax.io import html, json, model
 from brax.training.agents.ppo import train as ppo
 from brax.training.agents.sac import train as sac
-from typing import Dict
 
 
 def get_kwargs_ready(cfg: DictConfig) -> Dict:
