@@ -16,7 +16,7 @@
 
 import dataclasses
 import warnings
-from typing import Any, Callable, Sequence, Tuple, Optional
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 import jax
 import jax.numpy as jnp
