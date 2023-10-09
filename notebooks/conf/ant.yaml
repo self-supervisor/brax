@@ -1,4 +1,7 @@
 backend: positional
+use_lff: true
+lff_scale: 1.0
+training_algo: sac
 env_name: ant
 num_timesteps: 50000000
 num_evals: 10

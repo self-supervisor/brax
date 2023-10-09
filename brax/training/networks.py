@@ -110,7 +110,7 @@ class LFF(linen.Module):
         )
 
     def __call__(self, x):
-        return jnp.pi * jnp.sin(self.dense(x) - 1)
+        return jnp.sin(jnp.pi * (self.dense(x) - 1))
 
 
 class LFFMLP(linen.Module):
@@ -121,12 +121,28 @@ class LFFMLP(linen.Module):
     def __call__(self, data: jnp.ndarray):
         hidden = data
         for i, hidden_size in enumerate(self.layer_sizes[:-1]):
-            hidden = LFF(
-                num_input_features=self.layer_sizes[i],
-                num_output_features=self.layer_sizes[i + 1],
-                scale=self.scale,
-                name=f"LFF_{i}",
-            )(hidden)
+            if i == 0:
+                hidden = LFF(
+                    num_input_features=self.layer_sizes[i],
+                    num_output_features=self.layer_sizes[i + 1],
+                    scale=self.scale,
+                    name=f"LFF_{i}",
+                )(hidden)
+            if i == len(self.layer_sizes) - 2:
+                hidden = linen.Dense(
+                    self.layer_sizes[i + 1],
+                    name=f"hidden_{i}",
+                    kernel_init=default_mlp_init(),
+                    use_bias=True,
+                )(hidden)
+            else:
+                hidden = linen.Dense(
+                    self.layer_sizes[i + 1],
+                    name=f"hidden_{i}",
+                    kernel_init=default_mlp_init(),
+                    use_bias=True,
+                )(hidden)
+                hidden = linen.relu(hidden)
         return hidden
 
 
@@ -142,7 +158,8 @@ def make_policy_network(
     """Creates a policy network."""
     if use_lff:
         policy_module = LFFMLP(
-            layer_sizes=list(hidden_layer_sizes) + [param_size], scale=lff_scale
+            layer_sizes=[40 * obs_size] + list(hidden_layer_sizes) + [param_size],
+            scale=lff_scale,
         )
     else:
         policy_module = MLP(
@@ -172,7 +189,8 @@ def make_value_network(
     """Creates a policy network."""
     if use_lff:
         value_module = LFFMLP(
-            layer_sizes=list(hidden_layer_sizes) + [1], scale=lff_scale
+            layer_sizes=[40 * obs_size] + list(hidden_layer_sizes) + [1],
+            scale=lff_scale,
         )
     else:
         value_module = MLP(
@@ -215,11 +233,14 @@ def make_q_network(
             for _ in range(self.n_critics):
                 if use_lff:
                     q = LFFMLP(
-                        layer_sizes=list(hidden_layer_sizes) + [1], scale=lff_scale
+                        layer_sizes=[40 * hidden.shape[-1]]
+                        + list(hidden_layer_sizes)
+                        + [1],
+                        scale=lff_scale,
                     )(hidden)
                 else:
                     q = MLP(
-                        layer_sizes=list(hidden_layer_sizes) + [1],
+                        list(hidden_layer_sizes) + [1],
                         activation=activation,
                         kernel_init=jax.nn.initializers.lecun_uniform(),
                     )(hidden)

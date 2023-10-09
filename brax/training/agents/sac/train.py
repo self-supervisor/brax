@@ -136,6 +136,7 @@ def train(
     ] = None,
     use_lff: bool = None,
     lff_scale: Optional[float] = None,
+    hidden_layer_size: Tuple[int, int] = (256, 256),
 ):
     """SAC training."""
     process_id = jax.process_index()
@@ -209,6 +210,7 @@ def train(
         preprocess_observations_fn=normalize_fn,
         use_lff=use_lff,
         lff_scale=lff_scale,
+        hidden_layer_sizes=(hidden_layer_size, hidden_layer_size),
     )
     make_policy = sac_networks.make_inference_fn(sac_network)
 
