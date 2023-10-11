@@ -37,15 +37,19 @@ def actor_step(
 ) -> Tuple[State, Transition]:
     """Collect data."""
     actions, policy_extras = policy(env_state.obs, key)
-    nstate = env.step(env_state, actions)
+    keys = jax.random.split(key, len(env_state.obs))
+    nstate = env.step(env_state, actions, keys)
     state_extras = {x: nstate.info[x] for x in extra_fields}
-    return nstate, Transition(  # pytype: disable=wrong-arg-types  # jax-ndarray
-        observation=env_state.obs,
-        action=actions,
-        reward=nstate.reward,
-        discount=1 - nstate.done,
-        next_observation=nstate.obs,
-        extras={"policy_extras": policy_extras, "state_extras": state_extras},
+    return (
+        nstate,
+        Transition(  # pytype: disable=wrong-arg-types  # jax-ndarray
+            observation=env_state.obs,
+            action=actions,
+            reward=nstate.reward,
+            discount=1 - nstate.done,
+            next_observation=nstate.obs,
+            extras={"policy_extras": policy_extras, "state_extras": state_extras},
+        ),
     )
 
 

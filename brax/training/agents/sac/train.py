@@ -196,6 +196,7 @@ def train(
         episode_length=episode_length,
         action_repeat=action_repeat,
         randomization_fn=v_randomization_fn,
+        batch_size=None,
     )
 
     obs_size = env.observation_size
@@ -241,20 +242,14 @@ def train(
         discounting=discounting,
         action_size=action_size,
     )
-    alpha_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    alpha_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    critic_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    critic_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    actor_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    actor_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
 
     def sgd_step(
@@ -498,6 +493,7 @@ def train(
         episode_length=episode_length,
         action_repeat=action_repeat,
         randomization_fn=v_randomization_fn,
+        batch_size=num_eval_envs,
     )
 
     evaluator = acting.Evaluator(
@@ -519,7 +515,6 @@ def train(
         logging.info(metrics)
         progress_fn(0, metrics)
 
-    # Create and initialize the replay buffer.
     t = time.time()
     prefill_key, local_key = jax.random.split(local_key)
     prefill_keys = jax.random.split(prefill_key, local_devices_to_use)
