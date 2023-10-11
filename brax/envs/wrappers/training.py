@@ -67,6 +67,7 @@ def wrap(
 #             rng = jax.random.split(rng, self.batch_size)
 #         return jax.vmap(self.env.reset)(rng)
 
+
 #     def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
 #         if self.batch_size is not None:
 #             rng = jax.random.split(rng, self.batch_size)
@@ -219,7 +220,9 @@ class DomainRandomizationVmapWrapper(Wrapper):
     """Wrapper for domain randomization."""
 
     def __init__(
-        self, env: Env, randomization_fn: Callable[[System], Tuple[System, System]],
+        self,
+        env: Env,
+        randomization_fn: Callable[[System], Tuple[System, System]],
     ):
         super().__init__(env)
         self._sys_v, self._in_axes = randomization_fn(self.sys)
