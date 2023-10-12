@@ -1,6 +1,8 @@
 from typing import Dict
-from brax.training.acme.running_statistics import RunningStatisticsState
+
 import jax.numpy as jnp
+
+from brax.training.acme.running_statistics import RunningStatisticsState
 
 
 def layer_std(stats: RunningStatisticsState, weight_values: jnp.ndarray) -> float:
