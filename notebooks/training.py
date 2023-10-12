@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         rollout.append(state.pipeline_state)
         act_rng, rng = jax.random.split(rng)
         act, _ = jit_inference_fn(state.obs, act_rng)
-        state = jit_env_step(state, act)
+        state = jit_env_step(state, act, rng)
 
     html_str = html.render(env.sys.replace(dt=env.dt), rollout)
     wandb.log({"trained_agent_html": wandb.Html(html_str)})
