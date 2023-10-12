@@ -244,20 +244,14 @@ def train(
         discounting=discounting,
         action_size=action_size,
     )
-    alpha_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    alpha_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        alpha_loss, alpha_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    critic_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    critic_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        critic_loss, q_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
-    actor_update = (
-        gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
-            actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
-        )
+    actor_update = gradients.gradient_update_fn(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        actor_loss, policy_optimizer, pmap_axis_name=_PMAP_AXIS_NAME
     )
 
     def sgd_step(
@@ -577,7 +571,13 @@ def train(
     total_steps = current_step
     assert total_steps >= num_timesteps
 
-    params = _unpmap((training_state.normalizer_params, training_state.policy_params))
+    params = _unpmap(
+        (
+            training_state.normalizer_params,
+            training_state.policy_params,
+            training_state.q_params,
+        )
+    )
 
     # If there was no mistakes the training_state should still be identical on all
     # devices.

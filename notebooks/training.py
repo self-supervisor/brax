@@ -17,6 +17,10 @@ from brax import envs
 from brax.io import html, json, model
 from brax.training.agents.ppo import train as ppo
 from brax.training.agents.sac import train as sac
+from siren_eval_utils import (
+    compute_layer_std_dev_q_params,
+    compute_layer_std_dev_policy_params,
+)
 
 
 def get_kwargs_ready(cfg: DictConfig) -> Dict:
@@ -47,10 +51,13 @@ def main(cfg: DictConfig):
         wandb.log(metrics, step=num_steps)
 
     make_inference_fn, params, _ = train_fn(environment=env, progress_fn=progress)
+    std_dev_critic = compute_layer_std_dev_q_params(params[0], params[2])
+    std_dev_actor = compute_layer_std_dev_policy_params(params[0], params[1])
 
     model.save_params("rl_params", params)
     params = model.load_params("rl_params")
-    inference_fn = make_inference_fn(params)
+    policy_params = (params[0], params[1])
+    inference_fn = make_inference_fn(policy_params)
 
     env = envs.create(env_name=cfg.env_name, backend=cfg.backend)
 
