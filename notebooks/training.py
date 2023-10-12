@@ -53,6 +53,7 @@ def main(cfg: DictConfig):
     make_inference_fn, params, _ = train_fn(environment=env, progress_fn=progress)
     std_dev_critic = compute_layer_std_dev_q_params(params[0], params[2])
     std_dev_actor = compute_layer_std_dev_policy_params(params[0], params[1])
+    wandb.log({"std_dev_critic": std_dev_critic, "std_dev_actor": std_dev_actor})
 
     model.save_params("rl_params", params)
     params = model.load_params("rl_params")
