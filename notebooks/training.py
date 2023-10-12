@@ -26,12 +26,17 @@ def get_kwargs_ready(cfg: DictConfig) -> Dict:
     kwargs.pop("training_algo")
     kwargs.pop("max_y")
     kwargs.pop("min_y")
+    kwargs.pop("wandb_mode")
     return kwargs
 
 
 @hydra.main(config_path="conf")
 def main(cfg: DictConfig):
-    wandb.init(project="sac_siren_brax", config=dict(cfg))
+    wandb.init(
+        project="sac_siren_brax",
+        config=dict(cfg),
+        settings=wandb.Settings(mode=cfg.wandb_mode),
+    )
     env = envs.get_environment(env_name=cfg.env_name, backend=cfg.backend)
     trainer = sac.train if cfg.training_algo == "sac" else ppo.train
     kwargs = get_kwargs_ready(cfg)

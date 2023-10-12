@@ -80,6 +80,7 @@ def create(
     action_repeat: int = 1,
     auto_reset: bool = True,
     batch_size: Optional[int] = None,
+    reward_noise_scale: float = 0.0,
     **kwargs,
 ) -> Env:
     """Creates an environment from the registry.
@@ -97,6 +98,7 @@ def create(
     """
     env = _envs[env_name](**kwargs)
 
+    env = training.RewardNoiseWrapper(env, reward_noise_scale=reward_noise_scale)
     if episode_length is not None:
         env = training.EpisodeWrapper(env, episode_length, action_repeat)
     if batch_size:

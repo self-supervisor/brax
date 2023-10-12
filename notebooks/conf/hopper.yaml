@@ -21,3 +21,4 @@ seed: 1
 max_y: 2500
 min_y: 0
 hidden_layer_size: 1024
+wandb_mode: "run"
