@@ -218,9 +218,8 @@ class Ant(PipelineEnv):
         }
         return State(pipeline_state, obs, reward, done, metrics)
 
-    def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
+    def step(self, state: State, action: jp.ndarray) -> State:
         """Run one timestep of the environment's dynamics."""
-        rng, rng_pertubation = jax.random.split(rng)
         pipeline_state0 = state.pipeline_state
         pipeline_state = self.pipeline_step(pipeline_state0, action)
 
@@ -239,10 +238,6 @@ class Ant(PipelineEnv):
 
         obs = self._get_obs(pipeline_state)
         reward = forward_reward + healthy_reward - ctrl_cost - contact_cost
-        reward = (
-            reward
-            + self.reward_noise_scale * jax.random.normal(rng_pertubation, (1,))[0]
-        )
         done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
         state.metrics.update(
             reward_forward=forward_reward,

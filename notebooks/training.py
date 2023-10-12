@@ -43,8 +43,8 @@ def main(cfg: DictConfig):
 
     make_inference_fn, params, _ = train_fn(environment=env, progress_fn=progress)
 
-    model.save_params("/tmp/params", params)
-    params = model.load_params("/tmp/params")
+    model.save_params("rl_params", params)
+    params = model.load_params("rl_params")
     inference_fn = make_inference_fn(params)
 
     env = envs.create(env_name=cfg.env_name, backend=cfg.backend)

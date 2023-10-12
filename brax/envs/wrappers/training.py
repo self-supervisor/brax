@@ -31,6 +31,7 @@ def wrap(
     action_repeat: int = 1,
     randomization_fn: Optional[Callable[[System], Tuple[System, System]]] = None,
     batch_size: int = 1,
+    reward_noise_scale: float = 0.0,
 ) -> Wrapper:
     """Common wrapper pattern for all training agents.
 
@@ -46,31 +47,16 @@ def wrap(
       environment did not already have batch dimensions, it is additional Vmap
       wrapped.
     """
+    env = RewardNoiseWrapper(env, reward_noise_scale=reward_noise_scale)
     env = EpisodeWrapper(env, episode_length, action_repeat)
     if randomization_fn is None:
-        env = VmapWrapper(env)  # , batch_size=batch_size)
+        env = VmapWrapper(env)
     else:
         env = DomainRandomizationVmapWrapper(env, randomization_fn)
     env = AutoResetWrapper(env)
     return env
 
 
-# class VmapWrapper(Wrapper):
-#     """Vectorizes Brax env."""
-
-#     def __init__(self, env: Env, batch_size: Optional[int] = None):
-#         super().__init__(env)
-#         self.batch_size = batch_size
-
-#     def reset(self, rng: jp.ndarray) -> State:
-#         if self.batch_size is not None:
-#             rng = jax.random.split(rng, self.batch_size)
-#         return jax.vmap(self.env.reset)(rng)
-
-#     def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
-#         if self.batch_size is not None:
-#             rng = jax.random.split(rng, self.batch_size)
-#         return jax.vmap(self.env.step)(state, action, rng)
 class VmapWrapper(Wrapper):
     """Vectorizes Brax env."""
 
@@ -84,9 +70,18 @@ class VmapWrapper(Wrapper):
         return jax.vmap(self.env.reset)(rng)
 
     def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
-        if self.batch_size is not None:
-            rng = jax.random.split(rng, self.batch_size)
         return jax.vmap(self.env.step)(state, action, rng)
+
+
+class RewardNoiseWrapper(Wrapper):
+    def __init__(self, env: Env, reward_noise_scale: float):
+        super().__init__(env)
+        self.noise_scale = reward_noise_scale
+
+    def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
+        state = self.env.step(state, action)
+        reward = state.reward + self.noise_scale * jax.random.normal(rng, ())
+        return state.replace(reward=reward)
 
 
 class EpisodeWrapper(Wrapper):
@@ -107,13 +102,10 @@ class EpisodeWrapper(Wrapper):
         def f(state_and_rng, _):
             state, rng = state_and_rng
             rng, subrng = jax.random.split(rng)
-            nstate = self.env.step(state, action, subrng)
-            nstate_and_rng = (nstate, rng)
-            return nstate_and_rng, nstate.reward
+            nstate = self.env.step(state, action, rng)
+            return (nstate, rng), nstate.reward
 
-        state_and_rng = (state, rng)
-        state_and_rng, rewards = jax.lax.scan(f, state_and_rng, (), self.action_repeat)
-        state, rng = state_and_rng
+        (state, rng), rewards = jax.lax.scan(f, (state, rng), (), self.action_repeat)
         state = state.replace(reward=jp.sum(rewards, axis=0))
         steps = state.info["steps"] + self.action_repeat
         one = jp.ones_like(state.done)

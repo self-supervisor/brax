@@ -137,6 +137,7 @@ def train(
     use_lff: bool = None,
     lff_scale: Optional[float] = None,
     hidden_layer_size: Tuple[int, int] = (256, 256),
+    reward_noise_scale: float = 0.0,
 ):
     """SAC training."""
     process_id = jax.process_index()
@@ -197,6 +198,7 @@ def train(
         action_repeat=action_repeat,
         randomization_fn=v_randomization_fn,
         batch_size=None,
+        reward_noise_scale=reward_noise_scale,
     )
 
     obs_size = env.observation_size
