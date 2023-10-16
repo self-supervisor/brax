@@ -1,9 +1,10 @@
-import jax.numpy as jp
 import jax
-import wandb
+import jax.numpy as jp
 import matplotlib.pyplot as plt
-from brax.training.acme.running_statistics import RunningStatisticsState
+import wandb
 from omegaconf import DictConfig
+
+from brax.training.acme.running_statistics import RunningStatisticsState
 from brax.training.types import Params
 
 
@@ -69,7 +70,9 @@ def get_dimension_to_plot(cfg: DictConfig, params: Params) -> jp.ndarray:
 
 
 def get_points_to_plot(
-    mean: jp.ndarray, dim: int, number_of_points_to_plot: int,
+    mean: jp.ndarray,
+    dim: int,
+    number_of_points_to_plot: int,
 ) -> jp.ndarray:
     points_to_plot = []
     dim_mean = 0
