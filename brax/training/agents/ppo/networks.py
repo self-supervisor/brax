@@ -52,10 +52,10 @@ def make_inference_fn(ppo_networks: PPONetworks):
             postprocessed_actions = parametric_action_distribution.postprocess(
                 raw_actions
             )
-            return postprocessed_actions, {
-                "log_prob": log_prob,
-                "raw_action": raw_actions,
-            }
+            return (
+                postprocessed_actions,
+                {"log_prob": log_prob, "raw_action": raw_actions,},
+            )
 
         return policy
 
@@ -66,9 +66,10 @@ def make_ppo_networks(
     observation_size: int,
     action_size: int,
     preprocess_observations_fn: types.PreprocessObservationFn = types.identity_observation_preprocessor,
-    policy_hidden_layer_sizes: Sequence[int] = (32,) * 4,
-    value_hidden_layer_sizes: Sequence[int] = (256,) * 5,
     activation: networks.ActivationFn = linen.swish,
+    use_lff: bool = False,
+    lff_scale: float = 0.1,
+    hidden_layer_sizes: Tuple[int] = (256, 256),
 ) -> PPONetworks:
     """Make PPO networks with preprocessor."""
     parametric_action_distribution = distribution.NormalTanhDistribution(
@@ -78,14 +79,18 @@ def make_ppo_networks(
         parametric_action_distribution.param_size,
         observation_size,
         preprocess_observations_fn=preprocess_observations_fn,
-        hidden_layer_sizes=policy_hidden_layer_sizes,
+        hidden_layer_sizes=hidden_layer_sizes,
         activation=activation,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
     )
     value_network = networks.make_value_network(
         observation_size,
         preprocess_observations_fn=preprocess_observations_fn,
-        hidden_layer_sizes=value_hidden_layer_sizes,
+        hidden_layer_sizes=hidden_layer_sizes,
         activation=activation,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
     )
 
     return PPONetworks(

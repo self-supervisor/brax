@@ -146,6 +146,32 @@ class LFFMLP(linen.Module):
         return hidden
 
 
+class LinearFirstLayerMLP(linen.Module):
+    layer_sizes: Sequence[int]
+    scale: float
+
+    @linen.compact
+    def __call__(self, data: jnp.ndarray):
+        hidden = data
+        for i, hidden_size in enumerate(self.layer_sizes[:-1]):
+            if i == len(self.layer_sizes) - 2 or i == 0:
+                hidden = linen.Dense(
+                    self.layer_sizes[i + 1],
+                    name=f"hidden_{i}",
+                    kernel_init=default_mlp_init(),
+                    use_bias=True,
+                )(hidden)
+            else:
+                hidden = linen.Dense(
+                    self.layer_sizes[i + 1],
+                    name=f"hidden_{i}",
+                    kernel_init=default_mlp_init(),
+                    use_bias=True,
+                )(hidden)
+                hidden = linen.relu(hidden)
+        return hidden
+
+
 def make_policy_network(
     param_size: int,
     obs_size: int,

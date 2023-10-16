@@ -99,6 +99,10 @@ def train(
     randomization_fn: Optional[
         Callable[[base.System, jnp.ndarray], Tuple[base.System, base.System]]
     ] = None,
+    use_lff: bool = False,
+    lff_scale: float = 0.1,
+    hidden_layer_size: Tuple[int, int] = (256, 256),
+    reward_noise_scale: float = 0.0,
 ):
     """PPO training."""
     assert batch_size * num_minibatches % num_envs == 0
@@ -167,6 +171,7 @@ def train(
         episode_length=episode_length,
         action_repeat=action_repeat,
         randomization_fn=v_randomization_fn,
+        reward_noise_scale=reward_noise_scale,
     )
 
     reset_fn = jax.jit(jax.vmap(env.reset))
@@ -178,7 +183,12 @@ def train(
     if normalize_observations:
         normalize = running_statistics.normalize
     ppo_network = network_factory(
-        env_state.obs.shape[-1], env.action_size, preprocess_observations_fn=normalize
+        env_state.obs.shape[-1],
+        env.action_size,
+        preprocess_observations_fn=normalize,
+        use_lff=use_lff,
+        lff_scale=lff_scale,
+        hidden_layer_sizes=(hidden_layer_size, hidden_layer_size),
     )
     make_policy = ppo_networks.make_inference_fn(ppo_network)
 

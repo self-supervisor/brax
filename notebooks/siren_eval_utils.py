@@ -16,18 +16,26 @@ def layer_std(stats: RunningStatisticsState, weight_values: jnp.ndarray) -> floa
 
 
 def compute_layer_std_dev_q_params(
-    stats: RunningStatisticsState, q_params: Dict
+    stats: RunningStatisticsState, q_params: Dict, sac: bool = False
 ) -> float:
     """Compute the standard deviation of the layer weights."""
 
     def layer_std_for_one_q_network(network_index: int = 0) -> float:
-        weight_values = q_params["params"][f"MLP_{network_index}"]["hidden_0"]["kernel"]
+        if sac:
+            weight_values = q_params["params"][f"MLP_{network_index}"]["hidden_0"][
+                "kernel"
+            ]
+        else:
+            weight_values = q_params["params"]["hidden_0"]["kernel"]
         return layer_std(stats, weight_values)
 
-    overall_std = (
-        layer_std_for_one_q_network(network_index=0)
-        + layer_std_for_one_q_network(network_index=1)
-    ) / 2
+    if sac:
+        overall_std = (
+            layer_std_for_one_q_network(network_index=0)
+            + layer_std_for_one_q_network(network_index=1)
+        ) / 2
+    else:
+        overall_std = layer_std_for_one_q_network()
     return overall_std
 
 
