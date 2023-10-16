@@ -11,16 +11,16 @@ import numpy as onp
 import wandb
 from jax import numpy as jp
 from omegaconf import DictConfig
+from siren_eval_utils import (
+    compute_layer_std_dev_policy_params,
+    compute_layer_std_dev_q_params,
+)
 
 import brax
 from brax import envs
 from brax.io import html, json, model
 from brax.training.agents.ppo import train as ppo
 from brax.training.agents.sac import train as sac
-from siren_eval_utils import (
-    compute_layer_std_dev_q_params,
-    compute_layer_std_dev_policy_params,
-)
 
 
 def get_kwargs_ready(cfg: DictConfig) -> Dict:
