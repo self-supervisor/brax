@@ -3,7 +3,7 @@ use_lff: false
 lff_scale: 0.0001
 training_algo: ppo
 env_name: ant
-num_timesteps: 5000000
+num_timesteps: 500000
 num_evals: 10
 reward_scaling: 10
 episode_length: 1000

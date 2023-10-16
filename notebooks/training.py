@@ -14,6 +14,7 @@ from omegaconf import DictConfig
 from siren_eval_utils import (
     compute_layer_std_dev_policy_params,
     compute_layer_std_dev_q_params,
+    plot_neuron_activations,
 )
 
 import brax
@@ -57,11 +58,18 @@ def main(cfg: DictConfig):
         std_dev_critic = compute_layer_std_dev_q_params(params[0], params[2], sac=False)
     std_dev_actor = compute_layer_std_dev_policy_params(params[0], params[1])
     wandb.log({"std_dev_critic": std_dev_critic, "std_dev_actor": std_dev_actor})
+    wandb.log(
+        {
+            "std_dev_critic_cycles": std_dev_critic / (2 * onp.pi),
+            "std_dev_actor_cycles": std_dev_actor / (2 * onp.pi),
+        }
+    )
 
     model.save_params("rl_params", params)
     params = model.load_params("rl_params")
     policy_params = (params[0], params[1])
     inference_fn = make_inference_fn(policy_params)
+    plot_neuron_activations(cfg, params)
 
     env = envs.create(env_name=cfg.env_name, backend=cfg.backend)
 
