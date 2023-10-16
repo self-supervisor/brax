@@ -54,7 +54,10 @@ def make_inference_fn(ppo_networks: PPONetworks):
             )
             return (
                 postprocessed_actions,
-                {"log_prob": log_prob, "raw_action": raw_actions,},
+                {
+                    "log_prob": log_prob,
+                    "raw_action": raw_actions,
+                },
             )
 
         return policy
