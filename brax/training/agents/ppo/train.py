@@ -86,7 +86,7 @@ def train(
     num_resets_per_eval: int = 0,
     normalize_observations: bool = False,
     reward_scaling: float = 1.0,
-    clipping_epsilon: float = 0.3,
+    clipping_epsilon: float = 0.2,
     gae_lambda: float = 0.95,
     deterministic_eval: bool = False,
     network_factory: types.NetworkFactory[

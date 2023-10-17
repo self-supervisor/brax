@@ -39,7 +39,7 @@ def compute_layer_std_dev_q_params(
             ]
             return layer_std_sac(stats, weight_values)
         else:
-            weight_values = q_params["params"]["hidden_0"]["kernel"]
+            weight_values = q_params["params"]["LFF_0"]["dense"]["kernel"]
             return layer_std_only_state_input(stats, weight_values)
 
     if sac:
@@ -55,7 +55,7 @@ def compute_layer_std_dev_q_params(
 def compute_layer_std_dev_policy_params(
     stats: RunningStatisticsState, policy_params: Params
 ) -> float:
-    weight_values = policy_params["params"]["hidden_0"]["kernel"]
+    weight_values = policy_params["params"]["LFF_0"]["dense"]["kernel"]
     return layer_std_only_state_input(stats, weight_values)
 
 
@@ -88,12 +88,12 @@ def get_points_to_plot(
 def get_outputs(points_to_plot: jp.ndarray, params: Params, network: str) -> jp.ndarray:
     if network == "policy":
         return jp.sin(
-            jp.matmul(points_to_plot, params[1]["params"]["hidden_0"]["kernel"])
+            jp.matmul(points_to_plot, params[1]["params"]["LFF_0"]["dense"]["kernel"])
             + params[1]["params"]["hidden_0"]["bias"]
         )
     elif network == "value":
         return jp.sin(
-            jp.matmul(points_to_plot, params[2]["params"]["hidden_0"]["kernel"])
+            jp.matmul(points_to_plot, params[2]["params"]["LFF_0"]["dense"]["kernel"])
             + params[2]["params"]["hidden_0"]["bias"]
         )
     else:

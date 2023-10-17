@@ -110,7 +110,7 @@ def compute_ppo_loss(
     discounting: float = 0.9,
     reward_scaling: float = 1.0,
     gae_lambda: float = 0.95,
-    clipping_epsilon: float = 0.3,
+    clipping_epsilon: float = 0.2,
     normalize_advantage: bool = True,
 ) -> Tuple[jnp.ndarray, types.Metrics]:
     """Computes PPO loss.
@@ -178,16 +178,19 @@ def compute_ppo_loss(
 
     # Value function loss
     v_error = vs - baseline
-    v_loss = jnp.mean(v_error * v_error) * 0.5 * 0.5
+    v_loss = jnp.mean(v_error * v_error) * 0.5  # * 0.5
 
     # Entropy reward
     entropy = jnp.mean(parametric_action_distribution.entropy(policy_logits, rng))
     entropy_loss = entropy_cost * -entropy
 
     total_loss = policy_loss + v_loss + entropy_loss
-    return total_loss, {
-        "total_loss": total_loss,
-        "policy_loss": policy_loss,
-        "v_loss": v_loss,
-        "entropy_loss": entropy_loss,
-    }
+    return (
+        total_loss,
+        {
+            "total_loss": total_loss,
+            "policy_loss": policy_loss,
+            "v_loss": v_loss,
+            "entropy_loss": entropy_loss,
+        },
+    )

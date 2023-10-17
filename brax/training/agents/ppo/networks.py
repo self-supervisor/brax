@@ -54,10 +54,7 @@ def make_inference_fn(ppo_networks: PPONetworks):
             )
             return (
                 postprocessed_actions,
-                {
-                    "log_prob": log_prob,
-                    "raw_action": raw_actions,
-                },
+                {"log_prob": log_prob, "raw_action": raw_actions,},
             )
 
         return policy
@@ -69,7 +66,7 @@ def make_ppo_networks(
     observation_size: int,
     action_size: int,
     preprocess_observations_fn: types.PreprocessObservationFn = types.identity_observation_preprocessor,
-    activation: networks.ActivationFn = linen.swish,
+    activation: networks.ActivationFn = linen.relu,
     use_lff: bool = False,
     lff_scale: float = 0.1,
     hidden_layer_sizes: Tuple[int] = (256, 256),
