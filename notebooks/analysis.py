@@ -1,8 +1,9 @@
-import glob
 import datetime
-import pandas as pd
-import numpy as np
+import glob
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 now = datetime.datetime.now()
 files = glob.glob("/home/augustine/sac_analysis/????-??-??-??-??-??.csv")
