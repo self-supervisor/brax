@@ -14,8 +14,8 @@ from omegaconf import DictConfig
 from siren_eval_utils import (
     compute_layer_std_dev_policy_params,
     compute_layer_std_dev_q_params,
-    plot_neuron_activations,
     dump_metrics_dict_into_csv,
+    plot_neuron_activations,
 )
 
 import brax
