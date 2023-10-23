@@ -9,40 +9,25 @@ from brax.training.types import Params
 from typing import Dict, List
 
 
-def layer_std_sac(stats: RunningStatisticsState, weight_values: jp.ndarray) -> float:
-    action_std = jp.ones((weight_values.shape[0] - stats.std.shape[0]))
-    full_std = jp.concatenate([stats.std, action_std])
-    action_mean = jp.zeros((weight_values.shape[0] - stats.mean.shape[0]))
-    full_mean = jp.concatenate([stats.mean, action_mean])
-    scaled_weights = (weight_values - full_mean.reshape(-1, 1)) / (
-        full_std.reshape(-1, 1)
-    )
-    effective_frequency_std = jp.std(scaled_weights, axis=1)
-    return effective_frequency_std
-
-
-def layer_std_only_state_input(
-    stats: RunningStatisticsState, weight_values: jp.ndarray
-) -> float:
-    scaled_weights = (weight_values - stats.mean.reshape(-1, 1)) / (
-        stats.std.reshape(-1, 1)
-    )
-    effective_frequency_std = jp.std(scaled_weights)
-    return effective_frequency_std
-
-
 def compute_layer_std_dev_q_params(
     stats: RunningStatisticsState, q_params: Params, sac: bool = False
 ) -> float:
     def layer_std_for_one_q_network(network_index: int = 0) -> float:
         if sac:
-            weight_values = q_params["params"][f"LFFMLP_{network_index}"]["hidden_0"][
-                "kernel"
-            ]
-            return layer_std_sac(stats, weight_values)
+            std = (
+                q_params["params"][f"LFFMLP_{network_index}"]["LFF_0"]["dense"][
+                    "kernel"
+                ]
+                .reshape(-1)
+                .std()
+                * 1024
+            )
+            return std
         else:
-            weight_values = q_params["params"]["LFF_0"]["dense"]["kernel"]
-            return layer_std_only_state_input(stats, weight_values)
+            raise ValueError("Not implmented for ppo yet")
+            # assert True == False  # TODO: implement this for PPO
+            # weight_values = q_params["params"]["LFF_0"]["dense"]["kernel"]
+            # return layer_std_only_state_input(stats, weight_values)
 
     if sac:
         overall_std = (
@@ -57,8 +42,10 @@ def compute_layer_std_dev_q_params(
 def compute_layer_std_dev_policy_params(
     stats: RunningStatisticsState, policy_params: Params
 ) -> float:
-    weight_values = policy_params["params"]["LFF_0"]["dense"]["kernel"]
-    return layer_std_only_state_input(stats, weight_values)
+    weight_values_std = (
+        policy_params["params"]["LFF_0"]["dense"]["kernel"].reshape(-1).std() * 1024
+    )
+    return weight_values_std
 
 
 def get_dimension_to_plot(cfg: DictConfig, params: Params) -> jp.ndarray:
@@ -90,17 +77,38 @@ def get_points_to_plot(
 def get_outputs(points_to_plot: jp.ndarray, params: Params, network: str) -> jp.ndarray:
     if network == "policy":
         return jp.sin(
-            jp.matmul(points_to_plot, params[1]["params"]["LFF_0"]["dense"]["kernel"])
-            + params[1]["params"]["hidden_0"]["bias"]
+            jp.pi
+            * (
+                jp.matmul(
+                    points_to_plot, params[1]["params"]["LFF_0"]["dense"]["kernel"]
+                )
+                + params[1]["params"]["hidden_0"]["bias"]
+                - 1
+            )
         )
     elif network == "value":
-        return jp.sin(
-            jp.matmul(
-                points_to_plot,
-                params[2]["params"]["LFFMLP_0"]["LFF_0"]["dense"]["kernel"],
+        with_action_size = params[2]["params"]["LFFMLP_0"]["LFF_0"]["dense"][
+            "kernel"
+        ].shape[0]
+        just_obs_size = points_to_plot.shape[1]
+        if just_obs_size != with_action_size:
+            action = jp.zeros(
+                (points_to_plot.shape[0], with_action_size - just_obs_size)
             )
-            + params[2]["params"]["hidden_0"]["bias"]
-        )
+            points_to_plot_with_action = jp.concatenate(
+                (points_to_plot, action), axis=1
+            )
+            return jp.sin(
+                jp.pi
+                * (
+                    jp.matmul(
+                        points_to_plot_with_action,
+                        params[2]["params"]["LFFMLP_0"]["LFF_0"]["dense"]["kernel"],
+                    )
+                    + params[2]["params"]["LFFMLP_0"]["LFF_0"]["dense"]["bias"]
+                    - 1
+                )
+            )
     else:
         raise NotImplementedError("Network not implemented", network)
 
@@ -129,7 +137,7 @@ def plot_neuron_activations(cfg: DictConfig, params: Params) -> None:
     number_of_points_to_plot = 20
 
     dimension_to_plot = get_dimension_to_plot(cfg, params)
-    network_list = ["policy"]  # , "value"]
+    network_list = ["policy", "value"]
     for network in network_list:
         for dimension in dimension_to_plot:
             points_to_plot = get_points_to_plot(
@@ -173,7 +181,7 @@ def filter_metrics(metrics: List[dict]) -> List[dict]:
     return eval_metrics
 
 
-def dump_metrics_dict_into_csv(metrics: List[dict], cfg: dict) -> None:
+def dump_metrics_dict_into_csv(metrics: List[dict], cfg: dict, experiment: str) -> None:
     import csv
     from datetime import datetime
 
@@ -186,7 +194,11 @@ def dump_metrics_dict_into_csv(metrics: List[dict], cfg: dict) -> None:
         data.update(flattened_cfg)
 
     current_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    with open(f"{current_time}.csv", "w", newline="") as output_file:
+    with open(
+        f"/grid/zador/home/mavorpar/brax/notebooks/{experiment}/{current_time}.csv",
+        "w",
+        newline="",
+    ) as output_file:
         dict_writer = csv.DictWriter(output_file, fieldnames=keys)
         dict_writer.writeheader()
         dict_writer.writerows(metrics)
