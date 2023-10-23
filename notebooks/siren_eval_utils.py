@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 
 from brax.training.acme.running_statistics import RunningStatisticsState
 from brax.training.types import Params
+from typing import Dict, List
 
 
 def layer_std_sac(stats: RunningStatisticsState, weight_values: jp.ndarray) -> float:
@@ -35,7 +36,7 @@ def compute_layer_std_dev_q_params(
 ) -> float:
     def layer_std_for_one_q_network(network_index: int = 0) -> float:
         if sac:
-            weight_values = q_params["params"][f"MLP_{network_index}"]["hidden_0"][
+            weight_values = q_params["params"][f"LFFMLP_{network_index}"]["hidden_0"][
                 "kernel"
             ]
             return layer_std_sac(stats, weight_values)
@@ -70,9 +71,7 @@ def get_dimension_to_plot(cfg: DictConfig, params: Params) -> jp.ndarray:
 
 
 def get_points_to_plot(
-    mean: jp.ndarray,
-    dim: int,
-    number_of_points_to_plot: int,
+    mean: jp.ndarray, dim: int, number_of_points_to_plot: int,
 ) -> jp.ndarray:
     points_to_plot = []
     dim_mean = 0
@@ -96,7 +95,10 @@ def get_outputs(points_to_plot: jp.ndarray, params: Params, network: str) -> jp.
         )
     elif network == "value":
         return jp.sin(
-            jp.matmul(points_to_plot, params[2]["params"]["LFF_0"]["dense"]["kernel"])
+            jp.matmul(
+                points_to_plot,
+                params[2]["params"]["LFFMLP_0"]["LFF_0"]["dense"]["kernel"],
+            )
             + params[2]["params"]["hidden_0"]["bias"]
         )
     else:
@@ -127,7 +129,7 @@ def plot_neuron_activations(cfg: DictConfig, params: Params) -> None:
     number_of_points_to_plot = 20
 
     dimension_to_plot = get_dimension_to_plot(cfg, params)
-    network_list = ["policy", "value"]
+    network_list = ["policy"]  # , "value"]
     for network in network_list:
         for dimension in dimension_to_plot:
             points_to_plot = get_points_to_plot(
@@ -145,3 +147,46 @@ def plot_neuron_activations(cfg: DictConfig, params: Params) -> None:
                 params=params,
                 cfg=cfg,
             )
+
+
+def flatten_dict(d: dict, parent_key: str = "", sep: str = "_") -> dict:
+    items = {}
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.update(flatten_dict(v, new_key, sep=sep))
+        else:
+            items[new_key] = v
+    return items
+
+
+def remove_keys_with_substring(d: dict, substring: str) -> dict:
+    return {k: v for k, v in d.items() if substring not in k}
+
+
+def filter_metrics(metrics: List[dict]) -> List[dict]:
+    eval_metrics = []
+
+    for dict in metrics:
+        new_metrics = remove_keys_with_substring(dict, "training")
+        eval_metrics.append(new_metrics)
+    return eval_metrics
+
+
+def dump_metrics_dict_into_csv(metrics: List[dict], cfg: dict) -> None:
+    import csv
+    from datetime import datetime
+
+    flattened_cfg = flatten_dict(cfg)
+
+    metrics = filter_metrics(metrics)
+    keys = metrics[0].keys()
+
+    for data in metrics:
+        data.update(flattened_cfg)
+
+    current_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    with open(f"{current_time}.csv", "w", newline="") as output_file:
+        dict_writer = csv.DictWriter(output_file, fieldnames=keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(metrics)

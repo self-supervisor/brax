@@ -5,7 +5,7 @@ training_algo: sac
 env_name: ant
 num_timesteps: 6553600
 num_evals: 20
-reward_scaling: 30
+reward_scaling: 5
 episode_length: 1000
 normalize_observations: true
 action_repeat: 1

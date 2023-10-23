@@ -189,7 +189,7 @@ def make_policy_network(
         )
     else:
         policy_module = MLP(
-            layer_sizes=list(hidden_layer_sizes) + [param_size],
+            layer_sizes=[40 * obs_size] + list(hidden_layer_sizes) + [param_size],
             activation=activation,
             kernel_init=jax.nn.initializers.lecun_uniform(),
         )

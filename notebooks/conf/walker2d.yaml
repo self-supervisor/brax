@@ -1,6 +1,6 @@
 backend: positional
-use_lff: false
-lff_scale: 1.0
+use_lff: true
+lff_scale: 0.001
 training_algo: sac
 env_name: walker2d
 num_timesteps: 7864320
@@ -22,3 +22,4 @@ max_y: 2500
 min_y: 0
 hidden_layer_size: 1024
 wandb_mode: "run"
+reward_noise_scale: 0.0
