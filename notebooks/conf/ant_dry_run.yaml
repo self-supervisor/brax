@@ -21,5 +21,6 @@ seed: 1
 max_y: 2500
 min_y: 0
 hidden_layer_size: 1024
-reward_noise_scale: 0.0
 wandb_mode: "dryrun"
+reward_noise_scale: 0.0
+obs_noise_scale: 0.0

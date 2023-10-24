@@ -32,6 +32,7 @@ def wrap(
     randomization_fn: Optional[Callable[[System], Tuple[System, System]]] = None,
     batch_size: int = 1,
     reward_noise_scale: float = 0.0,
+    obs_noise_scale: float = 0.0,
 ) -> Wrapper:
     """Common wrapper pattern for all training agents.
 
@@ -48,6 +49,7 @@ def wrap(
       wrapped.
     """
     env = RewardNoiseWrapper(env, reward_noise_scale=reward_noise_scale)
+    env = ObservationNoiseWrapper(env, obs_noise_scale=obs_noise_scale)
     env = EpisodeWrapper(env, episode_length, action_repeat)
     if randomization_fn is None:
         env = VmapWrapper(env)
@@ -82,6 +84,18 @@ class RewardNoiseWrapper(Wrapper):
         state = self.env.step(state, action)
         reward = state.reward + self.noise_scale * jax.random.normal(rng, ())
         return state.replace(reward=reward)
+
+
+class ObservationNoiseWrapper(Wrapper):
+    def __init__(self, env: Env, obs_noise_scale: float):
+        super().__init__(env)
+        self.noise_scale = obs_noise_scale
+
+    def step(self, state: State, action: jp.ndarray, rng: jp.ndarray) -> State:
+        rng, subrng = jax.random.split(rng)
+        state = self.env.step(state, action, subrng)
+        obs = state.obs + self.noise_scale * jax.random.normal(rng, state.obs.shape)
+        return state.replace(obs=obs)
 
 
 class EpisodeWrapper(Wrapper):
@@ -211,9 +225,7 @@ class DomainRandomizationVmapWrapper(Wrapper):
     """Wrapper for domain randomization."""
 
     def __init__(
-        self,
-        env: Env,
-        randomization_fn: Callable[[System], Tuple[System, System]],
+        self, env: Env, randomization_fn: Callable[[System], Tuple[System, System]],
     ):
         super().__init__(env)
         self._sys_v, self._in_axes = randomization_fn(self.sys)
